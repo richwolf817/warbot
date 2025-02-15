@@ -1,6 +1,6 @@
 const { clusterApiUrl, Connection, PublicKey } = require('@solana/web3.js');
-const { BorshCoder, EventParser, Idl } = require('@coral-xyz/anchor');
-const { PumpFunIDL } = require('./idl');
+const { BorshCoder, EventParser } = require('@coral-xyz/anchor');
+const PumpFunIDL = require('./idl/pumpfun.json');
 
 const parseEvents = async () => {
   const signature = '4XQZckrFKjaLHM68kJH7dpSPo2TCfMkwjYhLdcNRu5QdJTjAEehsS5UMaZKDXADD46d8v4XnuyuvLV36rNRTKhn7';
@@ -17,6 +17,7 @@ const parseEvents = async () => {
   const events = eventParser.parseLogs(transaction.meta.logMessages);
 
   for (let event of events) {
+    console.log(event);
     console.log('--------- Trade Event Data ------------');
     console.log(
       `solAmount: ${event.data.solAmount}\ntokenAmount: ${event.data.tokenAmount}\ntype: ${
