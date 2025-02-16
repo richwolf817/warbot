@@ -8,9 +8,11 @@ Parameters:
   VpcId:
     Description: VPC ID in which to deploy the instance.
     Type: AWS::EC2::VPC::Id
+    Default: vpc-0994ff0f1275da795
   SubnetId:
     Description: Subnet ID in which to deploy the instance.
     Type: AWS::EC2::Subnet::Id
+    Default: i-0fbf0a37e89557676
   InstanceType:
     Description: EC2 instance type for the Solana Validator.
     Type: String
@@ -18,17 +20,17 @@ Parameters:
   AMIId:
     Description: AMI ID for the Solana Validator (built by Packer).
     Type: AWS::EC2::Image::Id
+    Default: ami-0225d34850a898a96
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access.
     Type: AWS::EC2::KeyPair::KeyName
+    Default: raydium
 
 Resources:
   SolanaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: >
-        Security group for Solana Validator instance.
-        Allows inbound TCP port 8000, UDP ports 8000-8020, and SSH (TCP 22).
+      GroupDescription: Security group for Solana Validator instance.
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp

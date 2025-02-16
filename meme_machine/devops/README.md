@@ -1,3 +1,15 @@
+# Build and Deploy RPC Node
+
+ami-053a45fff0a704a47
+
+    packer build .
+
+aws cloudformation deploy \
+ --stack-name SolanaRPC \
+ --template-file ec2.yml \
+ --capabilities CAPABILITY_NAMED_IAM \
+ --no-fail-on-empty-changeset
+
 # Ensuring Service is working
 
     systemctl status solana-rpc.service
