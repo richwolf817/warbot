@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Ultra-Fast Solana gRPC + RPC Node with Instance NVMe Storage'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: 'c6i.4xlarge'
+    Description: 'Instance type optimized for low-latency Solana RPC'
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: 'Name of an existing EC2 KeyPair to SSH into the instance'
+
+Resources:
+  SolanaNode:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: ami-0c55b159cbfafe1f0 # Ubuntu 22.04 LTS (Change if needed)
+      SecurityGroups:
+        - !Ref SolanaSecurityGroup
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -e
+
+          # Update System
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install -y curl jq tmux net-tools iotop iftop unzip nodejs npm
+
+          # Install Solana CLI
+          sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+
+          # Detect and Mount NVMe Storage for Ledger
+          NVME_DEVICE=$(lsblk -nd -o NAME | grep nvme | head -n 1)
+          if [ -n "$NVME_DEVICE" ]; then
+            sudo mkfs.ext4 /dev/$NVME_DEVICE
+            sudo mkdir -p /mnt/nvme0
+            sudo mount /dev/$NVME_DEVICE /mnt/nvme0
+            echo "/dev/$NVME_DEVICE /mnt/nvme0 ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+          fi
+
+          # Enable NVMe Optimizations
+          echo "noop" | sudo tee /sys/block/$NVME_DEVICE/queue/scheduler
+          echo 4096 | sudo tee /sys/block/$NVME_DEVICE/queue/read_ahead_kb
+
+          # Configure BBR for Low-Latency Networking
+          echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
+
+          # Configure System Limits for High I/O
+          echo "* hard nofile 1048576" | sudo tee -a /etc/security/limits.conf
+          echo "* soft nofile 1048576" | sudo tee -a /etc/security/limits.conf
+
+          # Install & Configure Solana Validator
+          mkdir -p /mnt/nvme0/ledger
+          solana-validator \
+            --identity ~/solana/validator-keypair.json \
+            --ledger /mnt/nvme0/ledger \
+            --rpc-port 8899 \
+            --full-rpc-api \
+            --enable-rpc-transaction-history \
+            --private-rpc \
+            --log ~/solana/validator.log \
+            --rpc-bind-address 0.0.0.0 \
+            --rpc-max-request-body-size 1000000000 \
+            --rpc-send-batch-size 1000 \
+            --wal-recovery-mode skip_any_corrupt_record \
+            --accounts-db-skip-shrink \
+            --no-snapshot-fetch \
+            --limit-ledger-size &
+
+          # Install Node.js & gRPC Dependencies
+          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+          sudo apt install -y nodejs
+          npm install -g @solana/web3.js @solana/rpc-core grpc @grpc/grpc-js
+
+          # Open Firewall for RPC/gRPC Access
+          sudo ufw allow 8899/tcp
+          sudo ufw allow 8900/tcp
+          sudo ufw allow 22/tcp
+          sudo ufw enable
+
+  SolanaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security group for Solana gRPC/RPC'
+      VpcId: !Ref AWS::EC2::VPC::Default
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8899
+          ToPort: 8899
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: 8900
+          ToPort: 8900
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '0.0.0.0/0'
