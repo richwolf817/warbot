@@ -1,11 +1,18 @@
 const { clusterApiUrl, Connection, PublicKey } = require('@solana/web3.js');
 const { BorshCoder, EventParser } = require('@coral-xyz/anchor');
-const PumpFunIDL = require('./idl/pumpfun.json');
+const IDL = require('./idl/raydium2.json');
+
+const signature = '2zw9kZaF6ADLj8UYmpWGsGJ35CpBBP1dCSXUqp3NdDAqpDNcfyZBHr6N1tWgqRvyd1ZyafSZRAwi5syf3mD4Ta87';
+const programId = new PublicKey('RaydFzxP1ch9DHcBZ7hL7ZjYr7rcGFwFwTjFzWBfZzN');
+
+// Create a connection to mainnet-beta
+const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
+const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2', {
+  wsEndpoint: 'wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2',
+  httpHeaders: { 'x-session-hash': SESSION_HASH },
+});
 
 const parseEvents = async () => {
-  const signature = '4XQZckrFKjaLHM68kJH7dpSPo2TCfMkwjYhLdcNRu5QdJTjAEehsS5UMaZKDXADD46d8v4XnuyuvLV36rNRTKhn7';
-  const PumpFunProgram = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
-  const connection = new Connection(clusterApiUrl('mainnet-beta'));
   const transaction = await connection.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0 });
 
   if (!transaction || !transaction.meta || !transaction.meta.logMessages) {
@@ -15,7 +22,7 @@ const parseEvents = async () => {
 
   console.log(transaction.meta.logMessages);
 
-  const eventParser = new EventParser(PumpFunProgram, new BorshCoder(PumpFunIDL));
+  const eventParser = new EventParser(programId, new BorshCoder(IDL));
   const events = eventParser.parseLogs(transaction.meta.logMessages);
 
   for (let event of events) {

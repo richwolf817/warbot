@@ -6,12 +6,15 @@ const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
 const knownDeFiPrograms = [
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4', // Jupiter
   'RaydFzxP1ch9DHcBZ7hL7ZjYr7rcGFwFwTjFzWBfZzN', // Raydium
+  '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', //Raydium
   'OrcaWXYk8k9uZhYszx7bHpRhP28u3tQkbXX1ovA7bR8', // Orca
   'SaberwzqU3dR2WtG3RhfGr3mbdoRXMu66nfrq4h6bHby', // Saber
   '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P', // Pump.fun
+  'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo', //Metro
+  'E6YoRP3adE5XYneSseLee15wJshDxCsmyD2WtLvAmfLi', // Mev Bot
 ];
 
-const signature = '5HPVnMbFuEaxnEBSB1CG5FU286sCX9HNEhsEf5ayBzA5dGGmZHv93W7xqoPenJWhtvuuaxZW8NvzKh9nmp7oQU2F';
+const signature = '3bNuZekCkZrAps7MPx3mfRGvHgZyVoK3CHT325x4UrNbSxvdHXYYk3YB3F4Sav7Vyyw9snLG3tutd4nUTTGdXbZh';
 
 // Create a connection to mainnet-beta
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
@@ -28,6 +31,8 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       console.error('Transaction not found for signature:', signature);
       return;
     }
+
+    console.log(tx.transaction.message.instructions);
 
     // Find a known DeFi program instruction (top-level) with a valid IDL.
     let dynamicProgramId;
