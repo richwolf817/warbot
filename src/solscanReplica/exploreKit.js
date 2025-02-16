@@ -3,7 +3,7 @@ const { SolanaFMParser, checkIfInstructionParser, ParserType } = require('@solan
 const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
 
 const programId = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
-const signature = '4XQZckrFKjaLHM68kJH7dpSPo2TCfMkwjYhLdcNRu5QdJTjAEehsS5UMaZKDXADD46d8v4XnuyuvLV36rNRTKhn7';
+const signature = '5HPVnMbFuEaxnEBSB1CG5FU286sCX9HNEhsEf5ayBzA5dGGmZHv93W7xqoPenJWhtvuuaxZW8NvzKh9nmp7oQU2F';
 
 // Create a connection to mainnet-beta
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
