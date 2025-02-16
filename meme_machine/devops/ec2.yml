@@ -1,105 +1,85 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Ultra-Fast Solana gRPC + RPC Node with Instance NVMe Storage'
+Description: >
+  CloudFormation template to deploy a Solana Validator instance (AMI built by Packer)
+  on an r6a.8xlarge instance with a Security Group that allows inbound TCP port 8000
+  and UDP ports 8000–8020.
 
 Parameters:
+  VpcId:
+    Description: VPC ID in which to deploy the instance.
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Description: Subnet ID in which to deploy the instance.
+    Type: AWS::EC2::Subnet::Id
   InstanceType:
+    Description: EC2 instance type for the Solana Validator.
     Type: String
-    Default: 'c6i.4xlarge'
-    Description: 'Instance type optimized for low-latency Solana RPC'
-
+    Default: r6a.8xlarge
+  AMIId:
+    Description: AMI ID for the Solana Validator (built by Packer).
+    Type: AWS::EC2::Image::Id
   KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access.
     Type: AWS::EC2::KeyPair::KeyName
-    Description: 'Name of an existing EC2 KeyPair to SSH into the instance'
 
 Resources:
-  SolanaNode:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
-      ImageId: ami-0c55b159cbfafe1f0 # Ubuntu 22.04 LTS (Change if needed)
-      SecurityGroups:
-        - !Ref SolanaSecurityGroup
-      UserData:
-        Fn::Base64: |
-          #!/bin/bash
-          set -e
-
-          # Update System
-          sudo apt update && sudo apt upgrade -y
-          sudo apt install -y curl jq tmux net-tools iotop iftop unzip nodejs npm
-
-          # Install Solana CLI
-          sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          solana --version
-
-          # Detect and Mount NVMe Storage for Ledger
-          NVME_DEVICE=$(lsblk -nd -o NAME | grep nvme | head -n 1)
-          if [ -n "$NVME_DEVICE" ]; then
-            sudo mkfs.ext4 /dev/$NVME_DEVICE
-            sudo mkdir -p /mnt/nvme0
-            sudo mount /dev/$NVME_DEVICE /mnt/nvme0
-            echo "/dev/$NVME_DEVICE /mnt/nvme0 ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
-          fi
-
-          # Enable NVMe Optimizations
-          echo "noop" | sudo tee /sys/block/$NVME_DEVICE/queue/scheduler
-          echo 4096 | sudo tee /sys/block/$NVME_DEVICE/queue/read_ahead_kb
-
-          # Configure BBR for Low-Latency Networking
-          echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-          echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
-          sudo sysctl -p
-
-          # Configure System Limits for High I/O
-          echo "* hard nofile 1048576" | sudo tee -a /etc/security/limits.conf
-          echo "* soft nofile 1048576" | sudo tee -a /etc/security/limits.conf
-
-          # Install & Configure Solana Validator
-          mkdir -p /mnt/nvme0/ledger
-          solana-validator \
-            --identity ~/solana/validator-keypair.json \
-            --ledger /mnt/nvme0/ledger \
-            --rpc-port 8899 \
-            --full-rpc-api \
-            --enable-rpc-transaction-history \
-            --private-rpc \
-            --log ~/solana/validator.log \
-            --rpc-bind-address 0.0.0.0 \
-            --rpc-max-request-body-size 1000000000 \
-            --rpc-send-batch-size 1000 \
-            --wal-recovery-mode skip_any_corrupt_record \
-            --accounts-db-skip-shrink \
-            --no-snapshot-fetch \
-            --limit-ledger-size &
-
-          # Install Node.js & gRPC Dependencies
-          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-          sudo apt install -y nodejs
-          npm install -g @solana/web3.js @solana/rpc-core grpc @grpc/grpc-js
-
-          # Open Firewall for RPC/gRPC Access
-          sudo ufw allow 8899/tcp
-          sudo ufw allow 8900/tcp
-          sudo ufw allow 22/tcp
-          sudo ufw enable
-
   SolanaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Security group for Solana gRPC/RPC'
-      VpcId: !Ref AWS::EC2::VPC::Default
+      GroupDescription: >
+        Security group for Solana Validator instance.
+        Allows inbound TCP port 8000, UDP ports 8000-8020, and SSH (TCP 22).
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 8899
-          ToPort: 8899
-          CidrIp: '0.0.0.0/0'
-        - IpProtocol: tcp
-          FromPort: 8900
-          ToPort: 8900
-          CidrIp: '0.0.0.0/0'
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 8000
+          ToPort: 8020
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: '0.0.0.0/0'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SolanaValidatorSG
+
+  SolanaInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AMIId
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref SolanaSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 50
+            VolumeType: gp3
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdf
+          Ebs:
+            VolumeSize: 500
+            VolumeType: gp3
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdg
+          Ebs:
+            VolumeSize: 500
+            VolumeType: gp3
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: SolanaValidatorInstance
+
+Outputs:
+  InstanceId:
+    Description: The EC2 Instance ID of the deployed Solana Validator.
+    Value: !Ref SolanaInstance
+  PublicIP:
+    Description: Public IP address of the deployed instance.
+    Value: !GetAtt SolanaInstance.PublicIp
