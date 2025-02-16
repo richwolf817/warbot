@@ -9,10 +9,9 @@ const knownDeFiPrograms = [
   'OrcaWXYk8k9uZhYszx7bHpRhP28u3tQkbXX1ovA7bR8', // Orca
   'SaberwzqU3dR2WtG3RhfGr3mbdoRXMu66nfrq4h6bHby', // Saber
   '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P', // Pump.fun
-  'Gy4r2wzguhhqqRRhcQV2wU6maxCLEtAR9zNSQt3iBPQP',
 ];
 
-const signature = '3Gjt5nRdfKLBky8uxaWXmdwftYss5kFgEhe9TwYjMSRG1LeNfgXuVM2BaNjCne3dSHYNXyLNXVLdJpbta9fcfF8Z';
+const signature = '5HPVnMbFuEaxnEBSB1CG5FU286sCX9HNEhsEf5ayBzA5dGGmZHv93W7xqoPenJWhtvuuaxZW8NvzKh9nmp7oQU2F';
 
 // Create a connection to mainnet-beta
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
@@ -30,7 +29,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       return;
     }
 
-    // Loop through instructions and look for one from a known DeFi program.
+    // Find a known DeFi program instruction (top-level) with a valid IDL.
     let dynamicProgramId;
     let idlItem = null;
     for (const ix of tx.transaction.message.instructions) {
@@ -59,7 +58,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       return;
     }
 
-    // Filter the transaction's instructions to those belonging to the dynamic program.
+    // Filter top-level instructions to those belonging to the dynamic program.
     const filteredIxs = tx.transaction.message.instructions.filter((ix) => {
       return ix.programId.toString() === dynamicProgramId;
     });
@@ -69,16 +68,32 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       return;
     }
 
-    // Decode each instruction using the instruction parser.
+    // Decode each top-level instruction using the instruction parser.
     filteredIxs.forEach((ix, index) => {
       const ixData = ix.data; // assumed to be a base58 encoded string
       try {
         const decoded = instructionParser.parseInstructions(ixData);
-        console.log(`Decoded instruction ${index}:`, decoded);
+        console.log(`Decoded top-level instruction ${index}:`, decoded);
       } catch (err) {
-        console.error(`Error decoding instruction ${index}:`, err);
+        console.error(`Error decoding top-level instruction ${index}:`, err);
       }
     });
+
+    // Optionally, if you need to process inner instructions, apply the same filter:
+    if (tx.meta && tx.meta.innerInstructions) {
+      tx.meta.innerInstructions.forEach((inner, innerIdx) => {
+        inner.instructions.forEach((ix, ixIdx) => {
+          const innerProgramId = ix.programId.toString();
+          if (!knownDeFiPrograms.includes(innerProgramId)) return;
+          try {
+            const decoded = instructionParser.parseInstructions(ix.data);
+            console.log(`Decoded inner instruction [${innerIdx}][${ixIdx}]:`, decoded);
+          } catch (err) {
+            console.error(`Error decoding inner instruction [${innerIdx}][${ixIdx}]:`, err);
+          }
+        });
+      });
+    }
   } catch (err) {
     console.error('Error:', err);
   }
