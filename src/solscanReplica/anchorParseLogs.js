@@ -17,7 +17,6 @@ const parseEvents = async () => {
   const events = eventParser.parseLogs(transaction.meta.logMessages);
 
   for (let event of events) {
-    console.log(event);
     console.log('--------- Trade Event Data ------------');
     console.log(
       `solAmount: ${event.data.solAmount}\ntokenAmount: ${event.data.tokenAmount}\ntype: ${

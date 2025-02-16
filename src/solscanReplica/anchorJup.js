@@ -1,6 +1,6 @@
 // singleTransactionParser.js
 
-// Use the new Anchor package
+// Use the new Anchor package (CommonJS version)
 const anchor = require('@coral-xyz/anchor');
 const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
 const idl = require('./idl/jupiter.json');
@@ -30,6 +30,13 @@ anchor.setProvider(provider);
 // Jupiter program ID on Solana (from the Jupiter aggregator)
 const programId = new PublicKey('JUP2jxvXaqu7NQY1GmNF4m1vodw12LVXYxbFL2uJvfo');
 
+// Ensure the IDL has the correct metadata address.
+// Jupiter's IDL sometimes doesn't include the program address so we add it.
+if (!idl.metadata) {
+  idl.metadata = {};
+}
+idl.metadata.address = programId.toString();
+
 // Create the Anchor Program instance.
 const program = new anchor.Program(idl, programId, provider);
 
@@ -42,7 +49,7 @@ const txSignature = '5zgvxQjV6BisU8SfahqasBZGfXy5HJ3YxYseMBG7VbR4iypDdtdymvE1jmE
 
 async function parseJupiterTransaction() {
   try {
-    // Fetch the transaction details from the RPC
+    // Fetch the transaction details from the RPC.
     const tx = await connection.getTransaction(txSignature, {
       commitment: 'confirmed',
     });
@@ -52,11 +59,11 @@ async function parseJupiterTransaction() {
     }
     console.log('Fetched Transaction:', tx);
 
-    // Extract instructions and account keys from the transaction message
+    // Extract instructions and account keys from the transaction message.
     const instructions = tx.transaction.message.instructions;
     const accountKeys = tx.transaction.message.accountKeys;
 
-    // Filter for instructions that belong to the Jupiter program
+    // Filter for instructions that belong to the Jupiter program.
     const jupiterInstructions = instructions.filter((ix) => {
       const ixProgramId = accountKeys[ix.programIdIndex];
       return ixProgramId.equals(programId);
@@ -67,10 +74,10 @@ async function parseJupiterTransaction() {
     for (let i = 0; i < jupiterInstructions.length; i++) {
       const ix = jupiterInstructions[i];
 
-      // Convert the base64-encoded instruction data into a Buffer
+      // Convert the base64-encoded instruction data into a Buffer.
       const dataBuffer = Buffer.from(ix.data, 'base64');
 
-      // Extract the observed discriminator (first 8 bytes) as a hex string
+      // Extract the observed discriminator (first 8 bytes) as a hex string.
       const observedDisc = dataBuffer.slice(0, 8).toString('hex');
       console.log(`Instruction ${i}:`);
       console.log(`Observed Discriminator: ${observedDisc}`);
@@ -90,5 +97,5 @@ async function parseJupiterTransaction() {
   }
 }
 
-// Execute the transaction parser
+// Execute the transaction parser.
 parseJupiterTransaction();
