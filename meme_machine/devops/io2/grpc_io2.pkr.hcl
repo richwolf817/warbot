@@ -138,10 +138,9 @@ build {
 
         # Apply systemd changes
         "echo 'Reloading systemd daemon and enabling the service...'",
-        "sudo chmod +x /home/ec2-user/validator.sh",
         "sudo systemctl daemon-reload",
         "sudo systemctl enable solana-rpc.service",
-        "sudo systemctl restart solana-rpc.service"
+        "sudo systemctl restart solana-rpc.service",
 
         # Install Rust (For Solana Development & CLI)
         "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",

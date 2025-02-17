@@ -14,11 +14,11 @@ Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: r7g.8xlarge
+    Default: r6a.8xlarge
   AMIId:
     Description: AMI ID built by Packer.
     Type: AWS::EC2::Image::Id
-    Default: ami-0f5918291fb5b65d7
+    Default: ami-0caebb64973074c69
   KeyName:
     Description: Name of an existing SSH KeyPair.
     Type: AWS::EC2::KeyPair::KeyName
@@ -67,10 +67,8 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 500
-            VolumeType: io2
-            Iops: 256000
-            Throughput: 4000
+            VolumeSize: 1500
+            VolumeType: gp3
             DeleteOnTermination: true
       Tags:
         - Key: Name
