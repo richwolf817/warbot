@@ -12,7 +12,7 @@ Parameters:
   SubnetId:
     Description: Subnet ID in which to deploy the instance.
     Type: AWS::EC2::Subnet::Id
-    Default: i-0fbf0a37e89557676
+    Default: subnet-011129f596ceec808
   InstanceType:
     Description: EC2 instance type for the Solana Validator.
     Type: String
@@ -20,7 +20,7 @@ Parameters:
   AMIId:
     Description: AMI ID for the Solana Validator (built by Packer).
     Type: AWS::EC2::Image::Id
-    Default: ami-0225d34850a898a96
+    Default: ami-053a45fff0a704a47
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access.
     Type: AWS::EC2::KeyPair::KeyName
@@ -33,6 +33,14 @@ Resources:
       GroupDescription: Security group for Solana Validator instance.
       VpcId: !Ref VpcId
       SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8899
+          ToPort: 8899
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8900
+          ToPort: 8900
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 8000
           ToPort: 8000
@@ -74,9 +82,37 @@ Resources:
             VolumeSize: 500
             VolumeType: gp3
             DeleteOnTermination: true
-      Tags:
-        - Key: Name
-          Value: SolanaValidatorInstance
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+
+          echo "Formatting and mounting ledger volume (/dev/xvdf)..."
+          sudo mkfs -t xfs /dev/xvdf
+          sudo mkdir -p /home/ec2-user/solana/ledger
+          sudo mount /dev/xvdf /home/ec2-user/solana/ledger
+          echo '/dev/xvdf /home/ec2-user/solana/ledger xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
+          sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/ledger
+
+          echo "Checking for genesis file..."
+          if [ ! -f /home/ec2-user/solana/ledger/genesis.tar.bz2 ]; then
+            echo "Genesis file not found. Downloading from mainnet-beta..."
+            wget -O /home/ec2-user/solana/ledger/genesis.tar.bz2 https://api.mainnet-beta.solana.com/genesis.tar.bz2
+            sudo chown ec2-user:ec2-user /home/ec2-user/solana/ledger/genesis.tar.bz2
+          else
+            echo "Genesis file exists."
+          fi
+
+          echo "Formatting and mounting accounts volume (/dev/xvdg)..."
+          sudo mkfs -t xfs /dev/xvdg
+          sudo mkdir -p /home/ec2-user/solana/accounts
+          sudo mount /dev/xvdg /home/ec2-user/solana/accounts
+          echo '/dev/xvdg /home/ec2-user/solana/accounts xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
+          sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/accounts
+
+    Tags:
+      - Key: Name
+        Value: SolanaValidatorInstance
 
 Outputs:
   InstanceId:

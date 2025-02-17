@@ -7,7 +7,7 @@ variable "instance_type" {
 }
 
 variable "ami_name" {
-  default = "solana-grpc-rpc-sniper"
+  default = "solana-grpc-rpc"
 }
 
 variable "ami_owner" {
@@ -66,7 +66,7 @@ build {
 
       # Install essential packages
       "sudo dnf install -y curl --allowerasing",
-      "sudo dnf install -y jq tmux htop net-tools iotop iftop unzip tar git gcc-c++ make numactl gcc gcc-c++ make python3-devel protobuf protobuf-devel",
+      "sudo dnf install -y wget nano jq tmux htop net-tools iotop iftop unzip tar git gcc-c++ make numactl gcc gcc-c++ make python3-devel protobuf protobuf-devel",
 
       # Install Solana CLI (v2.1.13) via Anza
       "sh -c \"$(curl -sSfL https://release.anza.xyz/v2.1.13/install)\"",
@@ -89,12 +89,21 @@ build {
       "sudo mkdir -p /home/ec2-user/solana/ledger",
       "sudo mount /dev/xvdf /home/ec2-user/solana/ledger",
       "echo '/dev/xvdf /home/ec2-user/solana/ledger xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab",
+      "sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/ledger",
+
+      # Check for genesis file; if not found, download it.
+      "if [ ! -f /home/ec2-user/solana/ledger/genesis.tar.bz2 ]; then",
+      "  echo 'Genesis file not found. Downloading...'",
+      "  wget -O /home/ec2-user/solana/ledger/genesis.tar.bz2 https://api.mainnet-beta.solana.com/genesis.tar.bz2",
+      "  sudo chown ec2-user:ec2-user /home/ec2-user/solana/ledger/genesis.tar.bz2",
+      "fi",
 
       # Format and mount the accounts GP3 volume (/dev/xvdg) to /home/ec2-user/solana/accounts
       "sudo mkfs -t xfs /dev/xvdg",
       "sudo mkdir -p /home/ec2-user/solana/accounts",
       "sudo mount /dev/xvdg /home/ec2-user/solana/accounts",
       "echo '/dev/xvdg /home/ec2-user/solana/accounts xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab",
+      "sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/accounts",
 
       # ---------------------------------------------------------------------
       # Apply OS Tuning for Solana Validator:
@@ -110,6 +119,12 @@ build {
       "EOF",
       "sudo sysctl --system",
       # ---------------------------------------------------------------------
+
+      # Increase file descriptor limits
+      "echo '* soft nofile 1048576' | sudo tee -a /etc/security/limits.conf",
+      "echo '* hard nofile 1048576' | sudo tee -a /etc/security/limits.conf",
+      "echo 'session required pam_limits.so' | sudo tee -a /etc/pam.d/common-session",
+      "ulimit -n 1048576",
 
       # Create the startup script for the Agave RPC node with updated paths
       "cat <<'EOF' > /home/ec2-user/validator.sh",
@@ -130,7 +145,14 @@ build {
       "    --log /home/ec2-user/solana-rpc.log \\",
       "    --rpc-port 8899 \\",
       "    --rpc-bind-address 0.0.0.0 \\",
-      "    --private-rpc",
+      "    --private-rpc \\",
+      "    --dynamic-port-range 8000-8020 \\",
+      "    --entrypoint entrypoint.testnet.solana.com:8001 \\",
+      "    --entrypoint entrypoint2.testnet.solana.com:8001 \\",
+      "    --entrypoint entrypoint3.testnet.solana.com:8001 \\",
+      "    --expected-genesis-hash 4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY \\",
+      "    --wal-recovery-mode skip_any_corrupted_record \\",
+      "    --limit-ledger-size",
       "EOF",
 
       # Make the validator script executable
