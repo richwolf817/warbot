@@ -6,7 +6,7 @@ ami-053a45fff0a704a47
 
 aws cloudformation deploy \
  --stack-name SolanaRPC \
- --template-file ec2.yml \
+ --template-file ec2_io2.yml \
  --capabilities CAPABILITY_NAMED_IAM \
  --no-fail-on-empty-changeset
 
