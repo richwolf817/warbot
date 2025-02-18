@@ -14,11 +14,11 @@ Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: r8g.48xlarge
+    Default: r7a.32xlarge
   AMIId:
     Description: AMI ID built by Packer.
     Type: AWS::EC2::Image::Id
-    Default: ami-0c518311db5640eff
+    Default: ami-053a45fff0a704a47
   KeyName:
     Description: Name of an existing SSH KeyPair.
     Type: AWS::EC2::KeyPair::KeyName
@@ -68,20 +68,21 @@ Resources:
         - DeviceName: /dev/xvda
           Ebs:
             VolumeSize: 50
-            VolumeType: io2
-            Iops: 64000
+            VolumeType: gp3
+            Iops: 16000
             DeleteOnTermination: true
         - DeviceName: /dev/xvdf
           Ebs:
             VolumeSize: 500
             VolumeType: io2
-            Iops: 64000
+            Iops: 100000
             DeleteOnTermination: true
         - DeviceName: /dev/xvdg
           Ebs:
             VolumeSize: 500
-            VolumeType: io2
-            Iops: 64000
+            VolumeType: gp3
+            Iops: 16000
+            DeleteOnTermination: true
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -118,7 +119,7 @@ Resources:
           solana --version || { echo "❌ Solana installation failed!"; exit 1; }
 
           echo "🔐 Generating validator keypair (if not exists)..."
-          mkdir -p ~/solana && chmod 700 ~/solana
+          sudo chown ec2-user:ec2-user ~/solana
           [ -f ~/solana/validator-keypair.json ] || solana-keygen new --outfile ~/solana/validator-keypair.json --no-bip39-passphrase
 
           echo "📜 Extracting public key from the generated keypair..."
