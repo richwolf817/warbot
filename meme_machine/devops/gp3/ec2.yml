@@ -71,16 +71,22 @@ Resources:
           Ebs:
             VolumeSize: 50
             VolumeType: gp3
+            Iops: 3000
+            Throughput: 250
             DeleteOnTermination: true
         - DeviceName: /dev/xvdf
           Ebs:
             VolumeSize: 500
             VolumeType: gp3
+            Iops: 16000
+            Throughput: 1000
             DeleteOnTermination: true
         - DeviceName: /dev/xvdg
           Ebs:
             VolumeSize: 500
             VolumeType: gp3
+            Iops: 5000
+            Throughput: 700
             DeleteOnTermination: true
       UserData:
         Fn::Base64: !Sub |
@@ -94,25 +100,15 @@ Resources:
           echo '/dev/xvdf /home/ec2-user/solana/ledger xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
           sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/ledger
 
-          echo "Checking for genesis file..."
-          if [ ! -f /home/ec2-user/solana/ledger/genesis.tar.bz2 ]; then
-            echo "Genesis file not found. Downloading from mainnet-beta..."
-            wget -O /home/ec2-user/solana/ledger/genesis.tar.bz2 https://api.mainnet-beta.solana.com/genesis.tar.bz2
-            sudo chown ec2-user:ec2-user /home/ec2-user/solana/ledger/genesis.tar.bz2
-          else
-            echo "Genesis file exists."
-          fi
-
           echo "Formatting and mounting accounts volume (/dev/xvdg)..."
           sudo mkfs -t xfs /dev/xvdg
           sudo mkdir -p /home/ec2-user/solana/accounts
           sudo mount /dev/xvdg /home/ec2-user/solana/accounts
           echo '/dev/xvdg /home/ec2-user/solana/accounts xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
           sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/accounts
-
-    Tags:
-      - Key: Name
-        Value: SolanaValidatorInstance
+      Tags:
+        - Key: Name
+          Value: SolanaRPC3
 
 Outputs:
   InstanceId:

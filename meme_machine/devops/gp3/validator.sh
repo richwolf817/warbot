@@ -7,11 +7,11 @@ exec agave-validator \
     --known-validator 7XSY3MrYnK8vq693Rju17bbPkCN3Z7KvvfvJx4kdrsSY \
     --known-validator Ft5fbkqNa76vnsjYNwjDZUXoTWpP7VYm3mtsaQckQADN \
     --known-validator 9QxCLckBiJc783jnMvXZubK4wH86Eqqvashtrwvcsgkv \
-    --only-known-rpc \
     --full-rpc-api \
     --no-voting \
     --ledger /home/ec2-user/solana/ledger \
     --accounts /home/ec2-user/solana/accounts \
+    --log - \
     --rpc-port 8899 \
     --rpc-bind-address 0.0.0.0 \
     --private-rpc \
@@ -22,4 +22,3 @@ exec agave-validator \
     --expected-genesis-hash 4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY \
     --wal-recovery-mode skip_any_corrupted_record \
     --limit-ledger-size \
-    --log -

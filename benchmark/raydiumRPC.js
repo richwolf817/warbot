@@ -4,7 +4,7 @@ const RAYDIUM_PUBLIC_KEY = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
 
 const raydium = new PublicKey(RAYDIUM_PUBLIC_KEY);
-const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`, {
+const connection = new Connection(`http://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`, {
   wsEndpoint: `wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`,
   httpHeaders: { 'x-session-hash': SESSION_HASH },
 });

@@ -6,7 +6,7 @@ ami-053a45fff0a704a47
 
 aws cloudformation deploy \
  --stack-name SolanaRPC \
- --template-file ec2_io2.yml \
+ --template-file ec2.yml \
  --capabilities CAPABILITY_NAMED_IAM \
  --no-fail-on-empty-changeset
 
@@ -14,6 +14,10 @@ aws cloudformation deploy \
 
     systemctl status solana-rpc.service
     journalctl -u solana-rpc.service -f
+
+    sudo systemctl stop solana-rpc.service
+    solana config set --url http://34.201.102.73:8899
+    solana catchup --our-localhost
 
 # Apply OS Tuning for Solana Validator:
 

@@ -14,11 +14,11 @@ Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: r6a.8xlarge
+    Default: r8g.48xlarge
   AMIId:
     Description: AMI ID built by Packer.
     Type: AWS::EC2::Image::Id
-    Default: ami-0caebb64973074c69
+    Default: ami-0c518311db5640eff
   KeyName:
     Description: Name of an existing SSH KeyPair.
     Type: AWS::EC2::KeyPair::KeyName
@@ -67,12 +67,81 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 1500
-            VolumeType: gp3
+            VolumeSize: 50
+            VolumeType: io2
+            Iops: 64000
             DeleteOnTermination: true
+        - DeviceName: /dev/xvdf
+          Ebs:
+            VolumeSize: 500
+            VolumeType: io2
+            Iops: 64000
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdg
+          Ebs:
+            VolumeSize: 500
+            VolumeType: io2
+            Iops: 64000
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+
+          echo "Formatting and mounting ledger volume (/dev/xvdf)..."
+          sudo mkfs -t xfs /dev/xvdf
+          sudo mkdir -p /home/ec2-user/solana/ledger
+          sudo mount /dev/xvdf /home/ec2-user/solana/ledger
+          echo '/dev/xvdf /home/ec2-user/solana/ledger xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
+          sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/ledger
+
+          echo "Formatting and mounting accounts volume (/dev/xvdg)..."
+          sudo mkfs -t xfs /dev/xvdg
+          sudo mkdir -p /home/ec2-user/solana/accounts
+          sudo mount /dev/xvdg /home/ec2-user/solana/accounts
+          echo '/dev/xvdg /home/ec2-user/solana/accounts xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
+          sudo chown -R ec2-user:ec2-user /home/ec2-user/solana/accounts
+
+          echo "🚀 Updating system packages..."
+          sudo dnf update -y
+
+          echo "📦 Installing essential packages..."
+          sudo dnf install -y curl wget nano jq tmux htop net-tools iotop iftop unzip tar git \
+            gcc-c++ make numactl gcc gcc-c++ make python3-devel protobuf protobuf-devel --allowerasing
+
+          echo "🔧 Installing Solana CLI (v2.1.13) via Anza..."
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.13/install)"
+
+          echo "🔄 Ensuring Solana CLI is in PATH..."
+          source ~/.bash_profile
+
+          echo "✅ Verifying Solana installation..."
+          solana --version || { echo "❌ Solana installation failed!"; exit 1; }
+
+          echo "🔐 Generating validator keypair (if not exists)..."
+          mkdir -p ~/solana && chmod 700 ~/solana
+          [ -f ~/solana/validator-keypair.json ] || solana-keygen new --outfile ~/solana/validator-keypair.json --no-bip39-passphrase
+
+          echo "📜 Extracting public key from the generated keypair..."
+          VALIDATOR_PUBKEY=$(solana-keygen pubkey ~/solana/validator-keypair.json)
+          echo "Validator Public Key: $VALIDATOR_PUBKEY"
+
+          echo "⚙️ Applying OS tuning for Solana Validator..."
+          sudo tee /etc/sysctl.d/60-solana.conf <<EOF
+          net.core.rmem_max = 134217728
+          net.core.rmem_default = 134217728
+          net.core.wmem_max = 134217728
+          net.core.wmem_default = 134217728
+          net.ipv4.tcp_rmem = 4096 87380 134217728
+          net.ipv4.tcp_wmem = 4096 65536 134217728
+          vm.max_map_count = 1000000
+          EOF
+
+          echo "🔄 Applying sysctl changes..."
+          sudo sysctl --system
+
       Tags:
         - Key: Name
-          Value: SolanaValidatorInstance
+          Value: SolanaIo2
 
 Outputs:
   InstanceId:

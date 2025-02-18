@@ -56,6 +56,7 @@ build {
 
         # Install Solana CLI (v2.1.13) via Anza
         "sh -c \"$(curl -sSfL https://release.anza.xyz/v2.1.13/install)\"",
+        # sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.13/install)"
 
         # Ensure Solana CLI is in PATH immediately
         "source ~/.bash_profile",
@@ -96,7 +97,7 @@ build {
         "    --known-validator 7XSY3MrYnK8vq693Rju17bbPkCN3Z7KvvfvJx4kdrsSY \\",
         "    --known-validator Ft5fbkqNa76vnsjYNwjDZUXoTWpP7VYm3mtsaQckQADN \\",
         "    --known-validator 9QxCLckBiJc783jnMvXZubK4wH86Eqqvashtrwvcsgkv \\",
-        "    --only-known-rpc \\",
+        # "    --only-known-rpc \\",
         "    --full-rpc-api \\",
         "    --no-voting \\",
         "    --ledger /home/ec2-user/solana/ledger \\",
