@@ -16,8 +16,13 @@ aws cloudformation deploy \
     journalctl -u solana-rpc.service -f
 
     sudo systemctl stop solana-rpc.service
+
     solana config set --url http://34.201.102.73:8899
     solana catchup --our-localhost
+
+    sudo systemctl start docker
+    tar -I zstd -xvf FILE
+    df -h
 
 # Apply OS Tuning for Solana Validator:
 

@@ -3,6 +3,7 @@
 # Create and apply system tuning for Solana Validator
 cat <<EOF | sudo tee /etc/sysctl.d/60-solana.conf
 net.core.rmem_max = 134217728
+212992
 net.core.rmem_default = 134217728
 net.core.wmem_max = 134217728
 net.core.wmem_default = 134217728

@@ -14,7 +14,7 @@ Parameters:
   InstanceType:
     Description: EC2 instance type.
     Type: String
-    Default: r7a.32xlarge
+    Default: r7a.48xlarge
   AMIId:
     Description: AMI ID built by Packer.
     Type: AWS::EC2::Image::Id
@@ -73,7 +73,7 @@ Resources:
             DeleteOnTermination: true
         - DeviceName: /dev/xvdf
           Ebs:
-            VolumeSize: 500
+            VolumeSize: 1500
             VolumeType: io2
             Iops: 100000
             DeleteOnTermination: true
@@ -106,7 +106,7 @@ Resources:
           sudo dnf update -y
 
           echo "📦 Installing essential packages..."
-          sudo dnf install -y curl wget nano jq tmux htop net-tools iotop iftop unzip tar git \
+          sudo dnf install -y docker curl wget nano jq tmux htop net-tools iotop iftop unzip tar git \
             gcc-c++ make numactl gcc gcc-c++ make python3-devel protobuf protobuf-devel --allowerasing
 
           echo "🔧 Installing Solana CLI (v2.1.13) via Anza..."
@@ -142,7 +142,7 @@ Resources:
 
       Tags:
         - Key: Name
-          Value: SolanaIo2
+          Value: SolanaFatBoy
 
 Outputs:
   InstanceId:
