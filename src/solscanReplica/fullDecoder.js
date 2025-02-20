@@ -2,7 +2,7 @@ const { Connection, PublicKey } = require('@solana/web3.js');
 const { SolanaFMParser, checkIfInstructionParser, ParserType } = require('@solanafm/explorer-kit');
 const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
 
-const signature = 'dYpVRwfeR1iQF1rE7q26e3FM8AU8ecKoQ6AaabxkV6SqaaJvkyjBPuNLvsYHpuLEtCEiaeEw46MonupHysT3h6N';
+const signature = '2y4tYDLu49jvKdJjLgZuNX7dvyfMUCyfaDNwK5XArFtrHvc6fBnqxSHZn7Vs2Jg5qKtYmRiHj23BKeGZ3ha3GHCo';
 /**
  * processRaydiumSwap extracts inner instruction details specific to a Raydium swap.
  * It iterates over inner instructions and, using a simple heuristic,
@@ -71,6 +71,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       return;
     }
 
+    console.log('Transaction Data', tx);
     // Combined detection: For each top-level instruction, check its programId and any inner instruction programIds.
     let dynamicProgramId;
     let idlItem = null;
