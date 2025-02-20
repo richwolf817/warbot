@@ -2,7 +2,7 @@
 
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { SolanaParser } = require('@debridge-finance/solana-transaction-parser');
-const JupiterIdl = require('./idl/jupiter.json');
+const JupiterIdl = require('../solscanReplica/idl/jupiter.json');
 
 // RPC endpoint (you can change this as needed)
 const rpcUrl = 'https://jupiter.genesysgo.net';

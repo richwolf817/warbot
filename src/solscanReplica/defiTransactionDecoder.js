@@ -2,17 +2,19 @@ const { Connection, PublicKey } = require('@solana/web3.js');
 const { SolanaFMParser, checkIfInstructionParser, ParserType } = require('@solanafm/explorer-kit');
 const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
 
+const signature = 'dYpVRwfeR1iQF1rE7q26e3FM8AU8ecKoQ6AaabxkV6SqaaJvkyjBPuNLvsYHpuLEtCEiaeEw46MonupHysT3h6N';
 /**
  * processRaydiumSwap extracts inner instruction details specific to a Raydium swap.
  * It iterates over inner instructions and, using a simple heuristic,
- * assigns the first encountered token transfer's amount as the SOL input and the second as the token output.
+ * returns the second token transfer amount as expect_amount_out.
  *
  * @param {Object} tx - The parsed transaction object.
- * @returns {Object} An object with solInput and tokenOutput amounts (if found).
+ * @returns {Object} An object with expect_amount_out (if found).
  */
 function processRaydiumSwap(tx) {
   const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-  const swapDetails = { solInput: null, tokenOutput: null };
+  const swapDetails = { expect_amount_out: null };
+  let transferCount = 0;
 
   if (tx.meta && tx.meta.innerInstructions) {
     for (const innerGroup of tx.meta.innerInstructions) {
@@ -24,14 +26,15 @@ function processRaydiumSwap(tx) {
           ix.parsed.info &&
           ix.parsed.info.amount
         ) {
-          // Using a simple heuristic: first transfer is SOL input, second is token output.
-          if (swapDetails.solInput === null) {
-            swapDetails.solInput = parseInt(ix.parsed.info.amount, 10);
-          } else if (swapDetails.tokenOutput === null) {
-            swapDetails.tokenOutput = parseInt(ix.parsed.info.amount, 10);
+          transferCount++;
+          // Only record the second token transfer as expect_amount_out.
+          if (transferCount === 2) {
+            swapDetails.expect_amount_out = parseFloat(ix.parsed.info.amount);
+            break;
           }
         }
       }
+      if (transferCount === 2) break;
     }
   }
   return swapDetails;
@@ -52,8 +55,6 @@ const knownDeFiPrograms = [
   { programId: '6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma', process: null }, // OXY
 ];
 
-const signature = '3bNuZekCkZrAps7MPx3mfRGvHgZyVoK3CHT325x4UrNbSxvdHXYYk3YB3F4Sav7Vyyw9snLG3tutd4nUTTGdXbZh';
-
 // Create a connection to mainnet-beta
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
 const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2', {
@@ -69,8 +70,6 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
       console.error('Transaction not found for signature:', signature);
       return;
     }
-
-    console.log(tx.transaction.message.instructions);
 
     // Combined detection: For each top-level instruction, check its programId and any inner instruction programIds.
     let dynamicProgramId;

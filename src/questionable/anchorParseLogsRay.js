@@ -1,6 +1,6 @@
 const { clusterApiUrl, Connection, PublicKey } = require('@solana/web3.js');
 const { BorshCoder, EventParser } = require('@coral-xyz/anchor');
-const IDL = require('./idl/raydium2.json');
+const IDL = require('../solscanReplica/idl/raydium2.json');
 
 const signature = '2zw9kZaF6ADLj8UYmpWGsGJ35CpBBP1dCSXUqp3NdDAqpDNcfyZBHr6N1tWgqRvyd1ZyafSZRAwi5syf3mD4Ta87';
 const programId = new PublicKey('RaydFzxP1ch9DHcBZ7hL7ZjYr7rcGFwFwTjFzWBfZzN');
