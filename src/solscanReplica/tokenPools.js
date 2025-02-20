@@ -11,8 +11,8 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98
 const mintToken = new PublicKey('4MpXgiYj9nEvN1xZYZ4qgB6zq5r2JMRy54WaQu5fpump'); // Example token
 const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112'); // Wrapped SOL mint address
 
-// Raydium AMM program (ensure this is the correct program ID for the liquidity pools you are targeting)
-const RAYDIUM_AMM_PROGRAM_ID = new PublicKey('RVKd61ztZW9qCkrG4ByE8nwx9kp7JBLYrJrV5EfpKkq');
+// Using the Standard AMM (CP-Swap, New) program ID from Raydium's docs:
+const RAYDIUM_AMM_PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 
 async function findSolPools(mintToken) {
   try {
@@ -21,7 +21,6 @@ async function findSolPools(mintToken) {
     const filters = [{ dataSize: 424 }];
     const accounts = await connection.getProgramAccounts(RAYDIUM_AMM_PROGRAM_ID, {
       commitment: 'confirmed',
-      filters, // Remove or adjust if necessary
     });
 
     console.log(`Fetched ${accounts.length} accounts with filter:`, filters);
