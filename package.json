@@ -34,6 +34,8 @@
     "bn.js": "^5.2.1",
     "bs58": "^5.0.0",
     "buffer-layout": "^1.2.2",
+    "chalk": "^5.4.1",
+    "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.5",
     "couchbase": "^4.4.5",
     "csvtojson": "^2.0.10",
@@ -45,6 +47,7 @@
     "json2csv": "^6.0.0-alpha.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.1",
+    "ora": "^8.2.0",
     "path": "^0.12.7",
     "rpc-websockets": "7.11.0",
     "winston": "^3.8.2"

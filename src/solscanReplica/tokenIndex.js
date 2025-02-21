@@ -1,16 +1,8 @@
-const { Connection, PublicKey } = require('@solana/web3.js');
+// tokenIndexing.js
+const { PublicKey } = require('@solana/web3.js');
 const { Metadata } = require('@metaplex-foundation/mpl-token-metadata');
-const CouchbaseHandler = require('./couchbaseHandler');
-
-const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
-
-const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`, {
-  wsEndpoint: `wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`,
-  httpHeaders: { 'x-session-hash': SESSION_HASH },
-});
-
-// Instantiate the Couchbase handler (ensure this class implements insertToken and getTokenByPrimary)
-const couchbaseHandler = new CouchbaseHandler();
+const couchbaseHandler = require('./couchbaseHandler');
+const connection = require('./connection');
 
 /**
  * Index a token by fetching its account info and metadata,
@@ -18,18 +10,18 @@ const couchbaseHandler = new CouchbaseHandler();
  *
  * @param {string} tokenAddress - The token's address.
  * @param {string} parentAddress - The parent address.
- * @param {object} instructionMeta - Metadata from Solana instructions (e.g., type "transfer" and other fields).
+ * @param {object} instructionMeta - Metadata from Solana instructions.
  * @returns {object} - The token data (from the database or freshly indexed).
  */
 async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
-  // 1. Check if token exists in the Couchbase database
+  // 1. Check if token exists in the Couchbase database.
   const existingToken = await couchbaseHandler.getTokenByPrimary(tokenAddress);
   if (existingToken) {
     console.log(`Token ${tokenAddress} already exists in the database.`);
     return existingToken;
   }
 
-  // 2. Retrieve token account info from Solana
+  // 2. Retrieve token account info from Solana.
   let tokenAccountData;
   try {
     if (tokenAddress === 'Not Found') {
@@ -37,7 +29,6 @@ async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
     }
     const tokenAccountInfo = await connection.getParsedAccountInfo(new PublicKey(tokenAddress));
     if (tokenAccountInfo.value && tokenAccountInfo.value.data && tokenAccountInfo.value.data.parsed) {
-      // Extract the 'info' object which contains mint and owner, among other fields
       tokenAccountData = tokenAccountInfo.value.data.parsed.info;
       console.log('Token account info:', tokenAccountData);
     } else {
@@ -49,7 +40,7 @@ async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
     return { symbol: 'Unknown', name: 'Unknown' };
   }
 
-  // 3. Get token metadata from the mint address (assumes tokenAccountData.mint exists)
+  // 3. Get token metadata from the mint address.
   let tokenMetadata = null;
   try {
     const mintPubkey = new PublicKey(tokenAccountData.mint);
@@ -59,7 +50,7 @@ async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
     console.error(`Error fetching token metadata for mint ${tokenAccountData.mint}:`, err);
   }
 
-  // 4. Construct the token object with the combined data
+  // 4. Construct the token object with the combined data.
   const tokenData = {
     tokenAddress,
     parentAddress,
@@ -70,7 +61,7 @@ async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
     indexedAt: new Date().toISOString(),
   };
 
-  // 5. Save the token data to Couchbase
+  // 5. Save the token data to Couchbase.
   try {
     await couchbaseHandler.insertToken(tokenData);
     console.log(`Token ${tokenAddress} successfully saved to the database.`);
@@ -89,8 +80,7 @@ async function tokenIndexing(tokenAddress, parentAddress, instructionMeta) {
  */
 async function readToken(tokenAddress) {
   try {
-    const token = await couchbaseHandler.getTokenByPrimary(tokenAddress);
-    return token;
+    return await couchbaseHandler.getTokenByPrimary(tokenAddress);
   } catch (err) {
     console.error(`Error reading token ${tokenAddress} from the database:`, err);
     return null;

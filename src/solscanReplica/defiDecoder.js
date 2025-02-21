@@ -1,7 +1,9 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { SolanaFMParser, checkIfInstructionParser, ParserType } = require('@solanafm/explorer-kit');
 const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
+
 const { tokenIndexing } = require('./tokenIndex');
+const connection = require('./connection');
 
 const knownDeFiPrograms = [
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
@@ -12,12 +14,6 @@ const knownDeFiPrograms = [
   '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',
   '6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma',
 ];
-
-const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
-const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2', {
-  wsEndpoint: 'wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2',
-  httpHeaders: { 'x-session-hash': SESSION_HASH },
-});
 
 /**
  * Processes a DeFi transaction signature by parsing the inner instructions,
