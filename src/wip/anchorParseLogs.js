@@ -1,6 +1,6 @@
 const { clusterApiUrl, Connection, PublicKey } = require('@solana/web3.js');
 const { BorshCoder, EventParser } = require('@coral-xyz/anchor');
-const PumpFunIDL = require('./idl/pumpfun.json');
+const PumpFunIDL = require('../solscanReplica/idl/pumpfun.json');
 
 const parseEvents = async () => {
   const signature = '4XQZckrFKjaLHM68kJH7dpSPo2TCfMkwjYhLdcNRu5QdJTjAEehsS5UMaZKDXADD46d8v4XnuyuvLV36rNRTKhn7';

@@ -1,72 +1,60 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
 
-// Create a connection to mainnet-beta using Helius
+const tokenAddress = 'AWHWFPnHixG6SR7mH41sjtv1iGaCgr9UuVBBD7PmDP41';
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9);
-const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2', {
-  wsEndpoint: 'wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2',
+
+const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`, {
+  wsEndpoint: `wss://mainnet.helius-rpc.com/?api-key=0ee98967-0ece-4dec-ac93-482f0e64d5a2`,
   httpHeaders: { 'x-session-hash': SESSION_HASH },
 });
 
-// Replace with the token mint address you are searching for
-const mintToken = new PublicKey('4MpXgiYj9nEvN1xZYZ4qgB6zq5r2JMRy54WaQu5fpump'); // Example token
-const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112'); // Wrapped SOL mint address
-
-// Using the Standard AMM (CP-Swap, New) program ID from Raydium's docs:
-const RAYDIUM_AMM_PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
-
-async function findSolPools(mintToken) {
+async function fetchAccountInfo() {
   try {
-    // Add a filter for the expected account size.
-    // For Raydium V4 liquidity pool state, the size is often 424 bytes.
-    const filters = [{ dataSize: 424 }];
-    const accounts = await connection.getProgramAccounts(RAYDIUM_AMM_PROGRAM_ID, {
-      commitment: 'confirmed',
-    });
+    if (tokenAddress === 'Not Found') return { symbol: 'Unknown', name: 'Unknown' };
 
-    console.log(`Fetched ${accounts.length} accounts with filter:`, filters);
-    const pools = [];
+    const tokenAccountInfo = await connection.getParsedAccountInfo(new PublicKey(tokenAddress));
 
-    for (const account of accounts) {
-      const data = account.account.data;
-      if (data.length < 100) continue; // Skip if data is too small to be a pool
-
-      // Extract the base and quote mint addresses from the binary data.
-      // These offsets assume that the account structure starts with an 8-byte discriminator,
-      // followed by the base mint (32 bytes) and quote mint (32 bytes).
-      const baseMint = new PublicKey(data.slice(8, 40));
-      const quoteMint = new PublicKey(data.slice(40, 72));
-
-      console.log(
-        'Pool account:',
-        account.pubkey.toBase58(),
-        'Base:',
-        baseMint.toBase58(),
-        'Quote:',
-        quoteMint.toBase58(),
-      );
-
-      // Check if SOL is paired with the given mint token
-      if (
-        (baseMint.equals(SOL_MINT) && quoteMint.equals(mintToken)) ||
-        (quoteMint.equals(SOL_MINT) && baseMint.equals(mintToken))
-      ) {
-        pools.push({
-          poolAddress: account.pubkey.toBase58(),
-          baseMint: baseMint.toBase58(),
-          quoteMint: quoteMint.toBase58(),
-        });
-      }
+    if (tokenAccountInfo.value && tokenAccountInfo.value.data.parsed) {
+      const { info } = tokenAccountInfo.value.data.parsed;
+      console.log(info);
     }
+  } catch (err) {
+    console.log('Error fetching token metadata for:', tokenAddress);
+  }
+  return { symbol: 'Unknown', name: 'Unknown' };
+}
 
-    if (pools.length === 0) {
-      console.log('No SOL pools found for this token.');
-    } else {
-      console.log('Found SOL pools:', pools);
-    }
-  } catch (error) {
-    console.error('Error fetching pools:', error);
+async function fetchTokenMetadata() {
+  try {
+    // Create a PublicKey from the token address (mint)
+    const mintPublicKey = new PublicKey(tokenAddress);
+
+    // The Metaplex Token Metadata program ID (this is constant for mainnet)
+    const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+
+    // Derive the metadata PDA for this mint using the standard seeds:
+    // ['metadata', metadata_program_id, mint_id]
+    const [metadataPDA] = await PublicKey.findProgramAddress(
+      [Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), mintPublicKey.toBuffer()],
+      METADATA_PROGRAM_ID,
+    );
+
+    console.log('Metadata PDA:', metadataPDA.toBase58());
+
+    // Load the metadata account using the mpl-token-metadata library.
+    const metadataAccount = await Metadata.load(connection, metadataPDA);
+
+    // Extract the token name from the metadata.
+    const tokenName = metadataAccount.data.data.name;
+    console.log('Token Name:', tokenName);
+
+    return tokenName;
+  } catch (err) {
+    console.log('Error fetching token metadata for:', tokenAddress, err);
+    return null;
   }
 }
 
-// Run the function
-findSolPools(mintToken);
+fetchAccountInfo();
+
+fetchTokenMetadata();
