@@ -2,11 +2,14 @@ const { PublicKey } = require('@solana/web3.js');
 const chalk = require('chalk');
 const ora = require('ora');
 const cliProgress = require('cli-progress');
+const Table = require('cli-table3');
+const minimist = require('minimist');
 const connection = require('./connection');
 const { defiTransaction } = require('./defiDecoder');
 
-// Get the mint token from CLI arguments.
-const mintArg = process.argv[2];
+// Parse CLI arguments
+const argv = minimist(process.argv.slice(2));
+const mintArg = argv._[0];
 if (!mintArg) {
   console.error(chalk.red('❌ Please provide a mint token as an argument.'));
   process.exit(1);
@@ -19,6 +22,11 @@ try {
   console.error(chalk.red('❌ Invalid mint token provided.'));
   process.exit(1);
 }
+
+// CLI options: -s for single, -r for record limit, -o for table output.
+const singleMode = argv.s || false;
+const recordLimit = argv.r ? parseInt(argv.r, 10) : null;
+const outputTable = argv.o || false;
 
 /**
  * Fetch all transactions for an address using pagination.
@@ -37,7 +45,6 @@ async function getTransactionsForAddress(address) {
     if (before) options.before = before;
 
     spinner.text = chalk.blue(`⏳ Fetched ${allSignatures.length} transactions so far...`);
-
     let signaturesInfo;
     try {
       signaturesInfo = await connection.getSignaturesForAddress(address, options);
@@ -53,6 +60,7 @@ async function getTransactionsForAddress(address) {
     }
 
     allSignatures.push(...signaturesInfo);
+    // Set pagination marker.
     before = signaturesInfo[signaturesInfo.length - 1].signature;
   }
 
@@ -61,35 +69,66 @@ async function getTransactionsForAddress(address) {
 
 (async () => {
   console.log(chalk.green(`🔎 Looking up transactions for mint token: ${tokenMint.toString()}`));
-
   const transactions = await getTransactionsForAddress(tokenMint);
 
   if (!transactions || transactions.length === 0) {
     console.log(chalk.yellow('⚠️ No transactions found.'));
+    return;
+  }
+
+  console.log(chalk.green(`✅ Fetched ${transactions.length} transactions.`));
+
+  // Determine the transactions to process based on CLI options.
+  let transactionsToProcess = transactions;
+  if (singleMode) {
+    transactionsToProcess = transactions.slice(0, 1);
+    console.log(chalk.blue('🕹 Processing in single mode (1 transaction)...'));
+  } else if (recordLimit && recordLimit > 0) {
+    transactionsToProcess = transactions.slice(0, recordLimit);
+    console.log(chalk.blue(`🕹 Processing first ${recordLimit} transactions...`));
   } else {
-    console.log(chalk.green(`✅ Fetched ${transactions.length} transactions.`));
+    console.log(chalk.blue('🕹 Processing all transactions...'));
+  }
 
-    // Create a progress bar for processing transactions.
-    const progressBar = new cliProgress.SingleBar({
-      format: 'Processing [{bar}] {percentage}% | {value}/{total} transactions',
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      hideCursor: true,
-    });
-    progressBar.start(transactions.length, 0);
+  // Create a progress bar for processing transactions.
+  const progressBar = new cliProgress.SingleBar({
+    format: chalk.cyan('Processing [{bar}] {percentage}% | {value}/{total} transactions'),
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true,
+  });
+  progressBar.start(transactionsToProcess.length, 0);
 
-    for (let i = 0; i < transactions.length; i++) {
-      const tx = transactions[i];
-      try {
-        // Process each transaction by calling defiTransaction.
-        await defiTransaction(tx.signature, tokenMint.toString());
-      } catch (err) {
-        console.error(chalk.red(`❌ Error processing transaction ${tx.signature}:`), err);
-      }
-      progressBar.update(i + 1);
+  // Array to store results of defiTransaction.
+  const results = [];
+
+  // Process each transaction.
+  for (let i = 0; i < transactionsToProcess.length; i++) {
+    const tx = transactionsToProcess[i];
+    try {
+      const result = await defiTransaction(tx.signature, tokenMint.toString());
+      results.push({ signature: tx.signature, result });
+    } catch (err) {
+      console.error(chalk.red(`❌ Error processing transaction ${tx.signature}:`), err);
+      results.push({ signature: tx.signature, result: 'Error' });
     }
-    progressBar.stop();
+    progressBar.update(i + 1);
+  }
+  progressBar.stop();
+  console.log(chalk.green('✅ All transactions processed.'));
 
-    console.log(chalk.green('✅ All transactions processed.'));
+  // Output results as a CLI table if -o flag is provided.
+  if (outputTable) {
+    const table = new Table({
+      head: [chalk.yellow('Index'), chalk.yellow('Signature'), chalk.yellow('Output')],
+      colWidths: [8, 60, 30],
+    });
+    results.forEach((item, index) => {
+      table.push([index + 1, item.signature, JSON.stringify(item.result)]);
+    });
+    console.log(table.toString());
+  } else {
+    // Otherwise, print a simple summary.
+    console.log(chalk.cyan('Processed transaction outputs:'), results);
   }
 })();
