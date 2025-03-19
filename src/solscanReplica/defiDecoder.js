@@ -3,7 +3,7 @@ const { SolanaFMParser, checkIfInstructionParser, ParserType } = require('@solan
 const { getProgramIdl } = require('@solanafm/explorer-kit-idls');
 
 const { tokenIndexing } = require('./tokenIndex');
-const connection = require('./connection');
+const connection = require('./solanaWeb');
 
 const knownDeFiPrograms = [
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',

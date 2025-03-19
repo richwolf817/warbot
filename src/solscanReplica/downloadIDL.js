@@ -2,7 +2,7 @@ const fs = require('fs');
 const anchor = require('@project-serum/anchor');
 const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
 
-const connection = require('./connection');
+const connection = require('./solanaWeb');
 
 // Determine the wallet path: use ANCHOR_WALLET env variable if set, otherwise use a default path.
 const walletPath = process.env.ANCHOR_WALLET || '/Users/richardwolf/.config/solana/id.json';

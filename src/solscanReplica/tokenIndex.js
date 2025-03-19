@@ -2,7 +2,7 @@
 const { PublicKey } = require('@solana/web3.js');
 const { Metadata } = require('@metaplex-foundation/mpl-token-metadata');
 const couchbaseHandler = require('./couchbaseHandler');
-const connection = require('./connection');
+const connection = require('./solanaWeb');
 
 /**
  * Index a token by fetching its account info and metadata,
